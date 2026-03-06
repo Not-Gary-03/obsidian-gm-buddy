@@ -1,9 +1,15 @@
 import {Editor, Plugin} from 'obsidian';
 import {DEFAULT_SETTINGS, GMBuddySettings, GMBuddySettingTab} from "./settings";
 import {HitPointListModal} from "./hit-point-list-modal";
+import {registerDiceBlockProcessors} from "./dice/dice-block-processor";
+import {registerAlchemyBlockProcessor} from "./alchemy/alchemy-block-processor";
+import {initAlchemyVault, registerAlchemyVaultListeners} from "./alchemy/vault-store";
+import {AlchemyItem, Ingredient} from "./types";
 
 export default class GMBuddyPlugin extends Plugin {
 	settings: GMBuddySettings;
+	ingredients: Ingredient[] = [];
+	alchemyItems: AlchemyItem[] = [];
 
 	async onload() {
 		await this.loadSettings();
@@ -18,6 +24,12 @@ export default class GMBuddyPlugin extends Plugin {
 				}).open();
 			}
 		});
+
+		registerDiceBlockProcessors(this);
+		registerAlchemyBlockProcessor(this);
+
+		await initAlchemyVault(this);
+		registerAlchemyVaultListeners(this);
 	}
 
 	async loadSettings() {
