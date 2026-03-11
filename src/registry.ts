@@ -53,7 +53,7 @@ export class ItemRegistry {
           name: fm.name,
           description: fm.description ?? "",
           typeItem: fm.typeItem,
-          rarity: fm.rarity ?? 0,
+          rarity: fm.rarity ?? "n/a",
           cost: fm.cost ?? 0,
           alchemical: fm.alchemical ?? 0,
           mystical: fm.mystical ?? 0,
@@ -66,9 +66,9 @@ export class ItemRegistry {
           name: fm.name,
           description: fm.description ?? "",
           typeItem: fm.typeItem,
-          typeProperty: fm.typeProperty ?? 0,
+          typeProperty: fm.typeProperty ?? "n/a",
           typeValue: fm.typeValue ?? 0,
-          rarity: fm.rarity ?? 0,
+          rarity: fm.rarity ?? "n/a",
           cost: fm.cost ?? 0,
           recipes: fm.recipes ?? [],
         });
@@ -79,7 +79,7 @@ export class ItemRegistry {
           name: fm.name,
           description: fm.description ?? "",
           typeItem: fm.typeItem,
-          rarity: fm.rarity ?? 0,
+          rarity: fm.rarity ?? "n/a",
           cost: fm.cost ?? 0,
           recipes: fm.recipes ?? [],
         });
@@ -118,7 +118,7 @@ export class ItemRegistry {
 
   /** The lookup your crafting function needs */
   findAlchemyByPropertyAndValue(
-    typeProperty: number,
+    typeProperty: string,
     typeValue: number
   ): AlchemyCraftable | undefined {
     return Array.from(this.alchemyCraftables.values()).find(

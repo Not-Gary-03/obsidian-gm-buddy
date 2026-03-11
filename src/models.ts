@@ -4,7 +4,7 @@ export interface BaseItem {
   name: string;
   description: string;
   typeItem: string;
-  rarity: number;
+  rarity: string;
   cost: number;
 }
 
@@ -16,7 +16,7 @@ export interface Ingredient extends BaseItem {
 }
 
 export interface AlchemyCraftable extends BaseItem {
-  typeProperty: number;
+  typeProperty: string;
   typeValue: number;
   recipes: string[];
 }

@@ -33,7 +33,8 @@ export class CraftingEngine {
     // Determine which property dominates and its value
     const properties = { alchemical: totalAlchemical, mystical: totalMystical, divine: totalDivine };
     const sorted = Object.entries(properties).sort((a, b) => b[1] - a[1]);
-    const dominantProperty = ["alchemical", "mystical", "divine"].indexOf(sorted[0][0]);
+    if (sorted.length === 0) return null;
+    const dominantProperty = sorted[0][0];
     const resultValue = sorted[0][1];
 
     // 3. Look up the matching craftable

@@ -10,7 +10,7 @@ export class NoteFactory {
     return [
       `# ${data.name ?? "New Ingredient"}`,
       "",
-      `**Rarity:** ${data.rarity ?? 0} · **Cost:** ${data.cost ?? 0}g`,
+      `**Rarity:** ${data.rarity ?? "n/a"} · **Cost:** ${data.cost ?? 0}g`,
       "",
       "| Alchemical | Mystical | Divine |",
       "|------------|----------|--------|",
@@ -27,8 +27,8 @@ export class NoteFactory {
     return [
       `# ${data.name ?? "New Alchemy Craftable"}`,
       "",
-      `**Rarity:** ${data.rarity ?? 0} · **Cost:** ${data.cost ?? 0}g`,
-      `**Property:** ${data.typeProperty ?? 0} · **Value:** ${data.typeValue ?? 0}`,
+      `**Rarity:** ${data.rarity ?? "n/a"} · **Cost:** ${data.cost ?? 0}g`,
+      `**Property:** ${data.typeProperty ?? "n/a"} · **Value:** ${data.typeValue ?? 0}`,
       "",
       "## Recipes",
       ...recipeLines.map((l) => `- ${l}`),
@@ -44,7 +44,7 @@ export class NoteFactory {
     return [
       `# ${data.name ?? "New Equipment Craftable"}`,
       "",
-      `**Rarity:** ${data.rarity ?? 0} · **Cost:** ${data.cost ?? 0}g`,
+      `**Rarity:** ${data.rarity ?? "n/a"} · **Cost:** ${data.cost ?? 0}g`,
       "",
       "## Recipes",
       ...recipeLines.map((l) => `- ${l}`),
@@ -66,7 +66,7 @@ export class NoteFactory {
       name: data.name ?? "New Ingredient",
       description: data.description ?? "",
       typeItem: "ingredient",
-      rarity: data.rarity ?? 0,
+      rarity: data.rarity ?? "n/a",
       cost: data.cost ?? 0,
       alchemical: data.alchemical ?? 0,
       mystical: data.mystical ?? 0,
@@ -90,9 +90,9 @@ export class NoteFactory {
       name: data.name ?? "New Alchemy Craftable",
       description: data.description ?? "",
       typeItem: "alchemy_craftable",
-      typeProperty: data.typeProperty ?? 0,
+      typeProperty: data.typeProperty ?? "n/a",
       typeValue: data.typeValue ?? 0,
-      rarity: data.rarity ?? 0,
+      rarity: data.rarity ?? "n/a",
       cost: data.cost ?? 0,
       recipes: data.recipes ?? [],
     });
@@ -114,7 +114,7 @@ export class NoteFactory {
       name: data.name ?? "New Equipment Craftable",
       description: data.description ?? "",
       typeItem: "equipment_craftable",
-      rarity: data.rarity ?? 0,
+      rarity: data.rarity ?? "n/a",
       cost: data.cost ?? 0,
       recipes: data.recipes ?? [],
     });
