@@ -1,11 +1,45 @@
 import {Editor, Plugin} from 'obsidian';
 import {DEFAULT_SETTINGS, GMBuddySettings, GMBuddySettingTab} from "./settings";
 import {HitPointListModal} from "./hit-point-list-modal";
+import {ItemRegistry} from "./registry";
+import {NoteFactory} from "./noteFactory";
+import {CraftingEngine} from "./crafting";
+import {NoteSync} from "./sync";
 
 export default class GMBuddyPlugin extends Plugin {
 	settings: GMBuddySettings;
+	registry: ItemRegistry;
+	noteFactory: NoteFactory;
+	craftingEngine: CraftingEngine;
+	noteSync: NoteSync;
 
 	async onload() {
+		this.registry = new ItemRegistry(this.app);
+		this.noteFactory = new NoteFactory(this.app);
+		this.craftingEngine = new CraftingEngine(this.registry, this.app);
+		this.noteSync = new NoteSync(this.app, this.noteFactory);
+
+		await this.registry.initialize();
+
+		// Wire up sync: re-render body whenever frontmatter changes
+		this.app.metadataCache.on("changed", (file) => this.noteSync.syncNoteBody(file));
+
+		this.addCommand({
+			id: "create-ingredient",
+			name: "New Ingredient",
+			callback: () => this.promptAndCreate("ingredient"),
+		});
+		this.addCommand({
+			id: "create-alchemy-craftable",
+			name: "New Alchemy Craftable",
+			callback: () => this.promptAndCreate("alchemy_craftable"),
+		});
+		this.addCommand({
+			id: "create-equipment-craftable",
+			name: "New Equipment Craftable",
+			callback: () => this.promptAndCreate("equipment_craftable"),
+		});
+
 		await this.loadSettings();
 		this.addSettingTab(new GMBuddySettingTab(this.app, this));
 
@@ -18,6 +52,24 @@ export default class GMBuddyPlugin extends Plugin {
 				}).open();
 			}
 		});
+	}
+
+	private async promptAndCreate(type: string) {
+		let file;
+		switch (type) {
+			case "ingredient":
+				file = await this.noteFactory.createIngredient({ name: "New Ingredient" });
+				break;
+			case "alchemy_craftable":
+				file = await this.noteFactory.createAlchemyCraftable({ name: "New Alchemy Craftable" });
+				break;
+			case "equipment_craftable":
+				file = await this.noteFactory.createEquipmentCraftable({ name: "New Equipment Craftable" });
+				break;
+			default:
+				return;
+		}
+		await this.app.workspace.getLeaf().openFile(file);
 	}
 
 	async loadSettings() {
