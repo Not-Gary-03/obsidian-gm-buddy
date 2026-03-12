@@ -78,10 +78,13 @@ export class CraftingEngine {
     const propDisplay = dominantProperty.charAt(0).toUpperCase() + dominantProperty.slice(1);
 
     const outputBlock = [
+      `#### ${result.name}`,
       `${propDisplay} result of combining ${ingredientList}:`,
-      `**${result.name}**`,
+      "",
       `*(${result.rarity})* | **Cost: ${result.cost}**`,
       result.description,
+      "",
+      "___",
       "",
     ].join("\n");
 

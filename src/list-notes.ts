@@ -15,8 +15,6 @@ export class ListNoteManager {
       .sort((a, b) => a.name.localeCompare(b.name));
 
     const lines = [
-      "# Ingredient List",
-      "",
       `*${ingredients.length} ingredient${ingredients.length !== 1 ? "s" : ""}*`,
       "",
     ];

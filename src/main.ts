@@ -2,7 +2,7 @@ import {Editor, Plugin} from 'obsidian';
 import {DEFAULT_SETTINGS, GMBuddySettings, GMBuddySettingTab} from "./settings";
 import {HitPointListModal} from "./hit-point-list-modal";
 import {ItemRegistry} from "./registry";
-import {NoteFactory} from "./noteFactory";
+import {NameModal, NoteFactory} from "./noteFactory";
 import {CraftingEngine} from "./crafting";
 import {NoteSync} from "./sync";
 import {ListNoteManager} from "./list-notes";
@@ -77,18 +77,27 @@ export default class GMBuddyPlugin extends Plugin {
 		let file;
 		switch (type) {
 			case "ingredient":
-				file = await this.noteFactory.createIngredient({ name: "New Ingredient" });
+				new NameModal(this.app, async (name) => {
+					file = await this.noteFactory.createIngredient({ name });
+					await this.app.workspace.getLeaf().openFile(file);
+				}).open();
 				break;
 			case "alchemy_craftable":
-				file = await this.noteFactory.createAlchemyCraftable({ name: "New Alchemy Craftable" });
+				new NameModal(this.app, async (name) => {
+					file = await this.noteFactory.createAlchemyCraftable({ name });
+					await this.app.workspace.getLeaf().openFile(file);
+				}).open();
 				break;
 			case "equipment_craftable":
-				file = await this.noteFactory.createEquipmentCraftable({ name: "New Equipment Craftable" });
+				new NameModal(this.app, async (name) => {
+					file = await this.noteFactory.createEquipmentCraftable({ name });
+					await this.app.workspace.getLeaf().openFile(file);
+				}).open();
 				break;
 			default:
 				return;
 		}
-		await this.app.workspace.getLeaf().openFile(file);
+		
 	}
 
 	async loadSettings() {

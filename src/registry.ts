@@ -69,10 +69,10 @@ export class ItemRegistry {
       case "ingredient":
         this.ingredients.set(key, {
           nameNormalized: key,
-          name: fm.name,
+          name: fm.name ?? "",
           description: fm.description ?? "",
           typeItem: fm.typeItem,
-          rarity: fm.rarity ?? "n/a",
+          rarity: fm.rarity ?? "",
           cost: fm.cost ?? 0,
           alchemical: fm.alchemical ?? 0,
           mystical: fm.mystical ?? 0,
@@ -82,12 +82,12 @@ export class ItemRegistry {
       case "alchemy_craftable":
         this.alchemyCraftables.set(key, {
           nameNormalized: key,
-          name: fm.name,
+          name: fm.name ?? "",
           description: fm.description ?? "",
           typeItem: fm.typeItem,
-          typeProperty: fm.typeProperty ?? "n/a",
+          typeProperty: fm.typeProperty ?? "",
           typeValue: fm.typeValue ?? 0,
-          rarity: fm.rarity ?? "n/a",
+          rarity: fm.rarity ?? "",
           cost: fm.cost ?? 0,
           recipes: fm.recipes ?? [],
         });
@@ -95,10 +95,10 @@ export class ItemRegistry {
       case "equipment_craftable":
         this.equipmentCraftables.set(key, {
           nameNormalized: key,
-          name: fm.name,
+          name: fm.name ?? "",
           description: fm.description ?? "",
           typeItem: fm.typeItem,
-          rarity: fm.rarity ?? "n/a",
+          rarity: fm.rarity ?? "",
           cost: fm.cost ?? 0,
           recipes: fm.recipes ?? [],
         });
