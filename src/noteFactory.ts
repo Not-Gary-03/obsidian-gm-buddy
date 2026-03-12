@@ -12,7 +12,7 @@ export class NameModal extends Modal {
 
   onOpen(): void {
     const { contentEl } = this;
-    contentEl.createEl("h2", { text: "New Ingredient" });
+    contentEl.createEl("h2", { text: "New Item" });
 
     new Setting(contentEl)
       .setName("Name")
@@ -102,15 +102,15 @@ export class NoteFactory {
     await this.ensureFolder(folder);
 
     const frontmatter = this.buildFrontmatter({
-      nameNormalized: normalized,
       name: data.name ?? "",
-      description: data.description ?? "",
       typeItem: "ingredient",
       rarity: data.rarity ?? null,
       cost: data.cost ?? 0,
+      description: data.description ?? "",
       alchemical: data.alchemical ?? 0,
       mystical: data.mystical ?? 0,
       divine: data.divine ?? 0,
+      nameNormalized: normalized,
     });
 
     const body = this.renderIngredientBody(data);
@@ -125,14 +125,14 @@ export class NoteFactory {
     await this.ensureFolder(folder);
 
     const frontmatter = this.buildFrontmatter({
-      nameNormalized: normalized,
       name: data.name ?? "",
-      description: data.description ?? "",
-      typeItem: "alchemy_craftable",
       typeProperty: data.typeProperty ?? "",
       typeValue: data.typeValue ?? 0,
       rarity: data.rarity ?? "",
       cost: data.cost ?? 0,
+      description: data.description ?? "",
+      typeItem: "alchemy_craftable",
+      nameNormalized: normalized,
       recipes: data.recipes ?? [],
     });
 
@@ -148,12 +148,12 @@ export class NoteFactory {
     await this.ensureFolder(folder);
 
     const frontmatter = this.buildFrontmatter({
-      nameNormalized: normalized,
       name: data.name ?? "",
-      description: data.description ?? "",
-      typeItem: "equipment_craftable",
       rarity: data.rarity ?? "",
       cost: data.cost ?? 0,
+      description: data.description ?? "",
+      typeItem: "equipment_craftable",
+      nameNormalized: normalized,
       recipes: data.recipes ?? [],
     });
 
