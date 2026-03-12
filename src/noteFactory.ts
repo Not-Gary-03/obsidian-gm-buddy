@@ -1,7 +1,7 @@
 // noteFactory.ts
 import { App, TFile, normalizePath } from "obsidian";
 import { Ingredient, AlchemyCraftable, EquipmentCraftable } from "./models";
-import { ItemRegistry } from "./registry";
+import { ItemRegistry, normalizeName } from "./registry";
 
 export class NoteFactory {
   constructor(private app: App) {}
@@ -54,8 +54,7 @@ export class NoteFactory {
   }
 
   async createIngredient(data: Partial<Ingredient>): Promise<TFile> {
-    const normalized = data.nameNormalized
-      ?? data.name?.toLowerCase().replace(/\s+/g, "_") ?? "unnamed";
+    const normalized = normalizeName(data.nameNormalized ?? data.name ?? "unnamed");
     const folder = ItemRegistry.FOLDERS.ingredient;
     const path = normalizePath(`${folder}/${normalized}.md`);
 
@@ -78,8 +77,7 @@ export class NoteFactory {
   }
 
   async createAlchemyCraftable(data: Partial<AlchemyCraftable>): Promise<TFile> {
-    const normalized = data.nameNormalized
-      ?? data.name?.toLowerCase().replace(/\s+/g, "_") ?? "unnamed";
+    const normalized = normalizeName(data.nameNormalized ?? data.name ?? "unnamed");
     const folder = ItemRegistry.FOLDERS.alchemy_craftable;
     const path = normalizePath(`${folder}/${normalized}.md`);
 
@@ -102,8 +100,7 @@ export class NoteFactory {
   }
 
   async createEquipmentCraftable(data: Partial<EquipmentCraftable>): Promise<TFile> {
-    const normalized = data.nameNormalized
-      ?? data.name?.toLowerCase().replace(/\s+/g, "_") ?? "unnamed";
+    const normalized = normalizeName(data.nameNormalized ?? data.name ?? "unnamed");
     const folder = ItemRegistry.FOLDERS.equipment_craftable;
     const path = normalizePath(`${folder}/${normalized}.md`);
 

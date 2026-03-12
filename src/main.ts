@@ -5,6 +5,7 @@ import {ItemRegistry} from "./registry";
 import {NoteFactory} from "./noteFactory";
 import {CraftingEngine} from "./crafting";
 import {NoteSync} from "./sync";
+import {ListNoteManager} from "./list-notes";
 
 export default class GMBuddyPlugin extends Plugin {
 	settings: GMBuddySettings;
@@ -12,17 +13,31 @@ export default class GMBuddyPlugin extends Plugin {
 	noteFactory: NoteFactory;
 	craftingEngine: CraftingEngine;
 	noteSync: NoteSync;
+	listNoteManager: ListNoteManager;
 
 	async onload() {
+		await this.loadSettings();
+
 		this.registry = new ItemRegistry(this.app);
 		this.noteFactory = new NoteFactory(this.app);
-		this.craftingEngine = new CraftingEngine(this.registry, this.app);
+		this.craftingEngine = new CraftingEngine(this.registry, this.app, this.settings);
 		this.noteSync = new NoteSync(this.app, this.noteFactory);
+		this.listNoteManager = new ListNoteManager(this.app, this.registry, this.settings);
 
-		await this.registry.initialize();
+		// Rebuild list notes whenever the registry updates
+		this.registry.setUpdateCallback(() => {
+			void this.listNoteManager.rebuildIngredientList();
+			void this.listNoteManager.rebuildAlchemyList();
+		});
 
 		// Wire up sync: re-render body whenever frontmatter changes
 		this.app.metadataCache.on("changed", (file) => this.noteSync.syncNoteBody(file));
+
+		// Delay registry initialization until the metadata cache is fully populated.
+		// Without this, getFileCache() returns null for existing files on startup.
+		this.app.workspace.onLayoutReady(async () => {
+			await this.registry.initialize();
+		});
 
 		this.addCommand({
 			id: "create-ingredient",
@@ -39,8 +54,12 @@ export default class GMBuddyPlugin extends Plugin {
 			name: "New Equipment Craftable",
 			callback: () => this.promptAndCreate("equipment_craftable"),
 		});
+		this.addCommand({
+			id: "perform-alchemy",
+			name: "Perform Alchemy",
+			callback: () => this.craftingEngine.openCraftingModal(),
+		});
 
-		await this.loadSettings();
 		this.addSettingTab(new GMBuddySettingTab(this.app, this));
 
 		this.addCommand({

@@ -2,12 +2,19 @@
 import { TFile, App } from "obsidian";
 import { Ingredient, AlchemyCraftable, EquipmentCraftable } from "./models";
 
+/** Shared normalization: lowercase, strip all non-alphanumeric characters. */
+export function normalizeName(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
 export class ItemRegistry {
   private ingredients: Map<string, Ingredient> = new Map();
   private alchemyCraftables: Map<string, AlchemyCraftable> = new Map();
   private equipmentCraftables: Map<string, EquipmentCraftable> = new Map();
 
-  // Folder paths (configurable in plugin settings)
+  private updateCallback: (() => void) | null = null;
+  private initializing = false;
+
   static FOLDERS = {
     ingredient: "Crafting/Ingredients",
     alchemy_craftable: "Crafting/Alchemy",
@@ -16,10 +23,15 @@ export class ItemRegistry {
 
   constructor(private app: App) {}
 
+  setUpdateCallback(cb: () => void): void {
+    this.updateCallback = cb;
+  }
+
   /** Call once on plugin load — full vault scan */
   async initialize(): Promise<void> {
     const { vault, metadataCache } = this.app;
 
+    this.initializing = true;
     for (const [, folder] of Object.entries(ItemRegistry.FOLDERS)) {
       const files = vault.getFiles().filter(
         (f) => f.path.startsWith(folder) && f.extension === "md"
@@ -28,6 +40,10 @@ export class ItemRegistry {
         this.indexFile(file);
       }
     }
+    this.initializing = false;
+
+    // Fire once after full initial scan
+    this.updateCallback?.();
 
     // Live sync: re-index whenever frontmatter changes
     metadataCache.on("changed", (file) => this.indexFile(file));
@@ -46,10 +62,13 @@ export class ItemRegistry {
     const fm = cache?.frontmatter;
     if (!fm?.typeItem || !fm?.nameNormalized) return;
 
+    // Always normalize the key on the way in so lookups are consistent
+    const key = normalizeName(String(fm.nameNormalized));
+
     switch (fm.typeItem) {
       case "ingredient":
-        this.ingredients.set(fm.nameNormalized, {
-          nameNormalized: fm.nameNormalized,
+        this.ingredients.set(key, {
+          nameNormalized: key,
           name: fm.name,
           description: fm.description ?? "",
           typeItem: fm.typeItem,
@@ -61,8 +80,8 @@ export class ItemRegistry {
         });
         break;
       case "alchemy_craftable":
-        this.alchemyCraftables.set(fm.nameNormalized, {
-          nameNormalized: fm.nameNormalized,
+        this.alchemyCraftables.set(key, {
+          nameNormalized: key,
           name: fm.name,
           description: fm.description ?? "",
           typeItem: fm.typeItem,
@@ -74,8 +93,8 @@ export class ItemRegistry {
         });
         break;
       case "equipment_craftable":
-        this.equipmentCraftables.set(fm.nameNormalized, {
-          nameNormalized: fm.nameNormalized,
+        this.equipmentCraftables.set(key, {
+          nameNormalized: key,
           name: fm.name,
           description: fm.description ?? "",
           typeItem: fm.typeItem,
@@ -84,6 +103,12 @@ export class ItemRegistry {
           recipes: fm.recipes ?? [],
         });
         break;
+      default:
+        return;
+    }
+
+    if (!this.initializing) {
+      this.updateCallback?.();
     }
   }
 
@@ -94,12 +119,14 @@ export class ItemRegistry {
   private removeByPath(path: string): void {
     for (const [typeItem, folder] of Object.entries(ItemRegistry.FOLDERS)) {
       if (path.startsWith(folder)) {
-        const name = path.split("/").pop()?.replace(".md", "") ?? "";
-        if (typeItem === "ingredient") this.ingredients.delete(name);
-        if (typeItem === "alchemy_craftable") this.alchemyCraftables.delete(name);
-        if (typeItem === "equipment_craftable") this.equipmentCraftables.delete(name);
+        const raw = path.split("/").pop()?.replace(".md", "") ?? "";
+        const key = normalizeName(raw);
+        if (typeItem === "ingredient") this.ingredients.delete(key);
+        if (typeItem === "alchemy_craftable") this.alchemyCraftables.delete(key);
+        if (typeItem === "equipment_craftable") this.equipmentCraftables.delete(key);
       }
     }
+    this.updateCallback?.();
   }
 
   // --- Public accessors ---
@@ -107,7 +134,15 @@ export class ItemRegistry {
     return Array.from(this.ingredients.values());
   }
   getIngredient(nameNormalized: string): Ingredient | undefined {
-    return this.ingredients.get(nameNormalized);
+    return this.ingredients.get(normalizeName(nameNormalized));
+  }
+
+  /** Looks up an ingredient from raw user input by normalizing both sides. */
+  getIngredientByInput(input: string): Ingredient | undefined {
+    const needle = normalizeName(input);
+    return Array.from(this.ingredients.values()).find(
+      (ing) => normalizeName(ing.nameNormalized) === needle
+    );
   }
   getAlchemyCraftables(): AlchemyCraftable[] {
     return Array.from(this.alchemyCraftables.values());
