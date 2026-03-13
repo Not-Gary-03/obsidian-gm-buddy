@@ -151,6 +151,11 @@ export class ItemRegistry {
     return Array.from(this.equipmentCraftables.values());
   }
 
+  /** Looks up an alchemy craftable from raw user input by normalizing the input and using it as the map key. */
+  getAlchemyCraftableByInput(input: string): AlchemyCraftable | undefined {
+    return this.alchemyCraftables.get(normalizeName(input));
+  }
+
   /** The lookup your crafting function needs */
   findAlchemyByPropertyAndValue(
     typeProperty: string,
@@ -158,6 +163,13 @@ export class ItemRegistry {
   ): AlchemyCraftable | undefined {
     return Array.from(this.alchemyCraftables.values()).find(
       (c) => c.typeProperty === typeProperty && c.typeValue === typeValue
+    );
+  }
+
+  /** Looks up an alchemy craftable whose recipes array contains the given key. */
+  findAlchemyByRecipe(recipeKey: string): AlchemyCraftable | undefined {
+    return Array.from(this.alchemyCraftables.values()).find(
+      (c) => c.recipes.includes(recipeKey)
     );
   }
 }

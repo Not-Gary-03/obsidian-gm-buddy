@@ -1,10 +1,14 @@
 // crafting.ts
 import { App, Notice, TFile, normalizePath } from "obsidian";
 import { Ingredient } from "./models";
-import { ItemRegistry } from "./registry";
-import { AlchemyCraftModal } from "./alchemy-craft-modal";
+import { ItemRegistry, normalizeName } from "./registry";
+import { AlchemyCraftModal, AddRecipeModal } from "./alchemy-craft-modal";
 import { TieBreakModal } from "./tie-break-modal";
 import { GMBuddySettings } from "./settings";
+
+function buildRecipeKey(ingredientNames: string[]): string {
+  return [...ingredientNames].map(normalizeName).sort().join("");
+}
 
 export class CraftingEngine {
   constructor(
@@ -31,7 +35,15 @@ export class CraftingEngine {
       ingredients.push(ing);
     }
 
-    // 2. Sum properties
+    // 2. Check for recipe match first
+    const recipeKey = buildRecipeKey(ingredients.map((i) => i.nameNormalized));
+    const recipeMatch = this.registry.findAlchemyByRecipe(recipeKey);
+    if (recipeMatch) {
+      await this.finalizeCraft(recipeMatch.typeProperty, recipeMatch.typeValue, ingredients);
+      return;
+    }
+
+    // 3. Sum properties
     const totalAlchemical = ingredients.reduce((s, i) => s + i.alchemical, 0);
     const totalMystical = ingredients.reduce((s, i) => s + i.mystical, 0);
     const totalDivine = ingredients.reduce((s, i) => s + i.divine, 0);
@@ -103,5 +115,42 @@ export class CraftingEngine {
     }
 
     new Notice(`Crafted: ${result.name}`);
+  }
+
+  openAddRecipeModal(): void {
+    new AddRecipeModal(this.app, (craftableName: string, ingredientNames: [string, string, string]) => {
+      void this.addRecipe(craftableName, ingredientNames);
+    }).open();
+  }
+
+  private async addRecipe(craftableName: string, ingredientNames: [string, string, string]): Promise<void> {
+    const craftable = this.registry.getAlchemyCraftableByInput(craftableName);
+    if (!craftable) {
+      new Notice(`Add recipe failed: craftable "${craftableName}" not found.`);
+      return;
+    }
+
+    for (const name of ingredientNames) {
+      if (!this.registry.getIngredientByInput(name)) {
+        new Notice(`Add recipe failed: ingredient "${name}" not found.`);
+        return;
+      }
+    }
+
+    const key = buildRecipeKey(ingredientNames);
+
+    const path = normalizePath(`${ItemRegistry.FOLDERS.alchemy_craftable}/${craftable.nameNormalized}.md`);
+    const file = this.app.vault.getAbstractFileByPath(path);
+    if (!(file instanceof TFile)) {
+      new Notice(`Could not find note for "${craftable.name}".`);
+      return;
+    }
+
+    await this.app.fileManager.processFrontMatter(file, (fm) => {
+      if (!Array.isArray(fm.recipes)) fm.recipes = [];
+      if (!fm.recipes.includes(key)) fm.recipes.push(key);
+    });
+
+    new Notice(`Recipe added to ${craftable.name}.`);
   }
 }

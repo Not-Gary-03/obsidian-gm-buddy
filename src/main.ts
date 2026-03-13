@@ -59,6 +59,11 @@ export default class GMBuddyPlugin extends Plugin {
 			name: "Perform Alchemy",
 			callback: () => this.craftingEngine.openCraftingModal(),
 		});
+		this.addCommand({
+			id: "add-recipe",
+			name: "Add Recipe",
+			callback: () => this.craftingEngine.openAddRecipeModal(),
+		});
 
 		this.addSettingTab(new GMBuddySettingTab(this.app, this));
 
