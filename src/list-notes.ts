@@ -32,7 +32,7 @@ export class ListNoteManager {
   }
 
   async rebuildAlchemyList(): Promise<void> {
-    const propertyOrder: Record<string, number> = { alchemical: 0, mystical: 1, divine: 2 };
+    const propertyOrder: Record<string, number> = { alchemical: 0, mystical: 1, divine: 2, unique: 3 };
     const craftables = this.registry.getAlchemyCraftables()
       .sort((a, b) => {
         const propDiff = (propertyOrder[a.typeProperty] ?? 99) - (propertyOrder[b.typeProperty] ?? 99);
@@ -50,7 +50,7 @@ export class ListNoteManager {
     for (const item of craftables) {
       lines.push(
         `| [[${item.name}]] | *${item.rarity}* | ${item.cost} **GP**` +
-        `| ${item.typeProperty} | ***${item.typeValue}*** |`
+        `| ${item.typeProperty} | ${item.typeValue > 0 ? "***" + item.typeValue + "***" : "*n/a*"} |`
       );
     }
 

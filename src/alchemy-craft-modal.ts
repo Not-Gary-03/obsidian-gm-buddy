@@ -1,5 +1,6 @@
 // alchemy-craft-modal.ts
 import { App, Modal, Setting } from "obsidian";
+import { normalizeName } from "./registry";
 
 export class AlchemyCraftModal extends Modal {
   private ingredient1 = "";

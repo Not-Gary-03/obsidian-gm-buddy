@@ -139,10 +139,10 @@ export class CraftingEngine {
 
     const key = buildRecipeKey(ingredientNames);
 
-    const path = normalizePath(`${ItemRegistry.FOLDERS.alchemy_craftable}/${craftable.nameNormalized}.md`);
+    const path = normalizePath(`${ItemRegistry.FOLDERS.alchemy_craftable}/${craftableName}.md`);
     const file = this.app.vault.getAbstractFileByPath(path);
     if (!(file instanceof TFile)) {
-      new Notice(`Could not find note for "${craftable.name}".`);
+      new Notice(`Could not find note for "${craftableName}".`);
       return;
     }
 
@@ -151,6 +151,6 @@ export class CraftingEngine {
       if (!fm.recipes.includes(key)) fm.recipes.push(key);
     });
 
-    new Notice(`Recipe added to ${craftable.name}.`);
+    new Notice(`Recipe added to ${craftableName}.`);
   }
 }
