@@ -19,10 +19,12 @@ export class ListNoteManager {
       "",
     ];
 
+    lines.push(`| **Name** | *Rarity* | Cost | Alc | Mys | Div |\n` +
+               `|----------|----------|------|-----|-----|-----|`);
     for (const ing of ingredients) {
       lines.push(
-        `- [[${ing.name}]] — Rarity: ${ing.rarity} | Cost: ${ing.cost}g` +
-        ` | Alchemical: ${ing.alchemical} | Mystical: ${ing.mystical} | Divine: ${ing.divine}`
+        `| [[${ing.name}]] | *${ing.rarity}* | ${ing.cost} **GP**` +
+        `| **${ing.alchemical}** A | **${ing.mystical}** M | **${ing.divine}** D |`
       );
     }
 
@@ -30,20 +32,25 @@ export class ListNoteManager {
   }
 
   async rebuildAlchemyList(): Promise<void> {
+    const propertyOrder: Record<string, number> = { alchemical: 0, mystical: 1, divine: 2 };
     const craftables = this.registry.getAlchemyCraftables()
-      .sort((a, b) => a.name.localeCompare(b.name));
+      .sort((a, b) => {
+        const propDiff = (propertyOrder[a.typeProperty] ?? 99) - (propertyOrder[b.typeProperty] ?? 99);
+        if (propDiff !== 0) return propDiff;
+        return a.typeValue - b.typeValue;
+      });
 
     const lines = [
-      "# Alchemy Craftable List",
-      "",
       `*${craftables.length} craftable${craftables.length !== 1 ? "s" : ""}*`,
       "",
     ];
 
+    lines.push(`| **Name** | *Rarity* | Cost | Type | Index |\n` +
+               `|----------|----------|------|------|-------|`);
     for (const item of craftables) {
       lines.push(
-        `- [[${item.name}]] — Rarity: ${item.rarity} | Cost: ${item.cost}g` +
-        ` | Property: ${item.typeProperty} | Value: ${item.typeValue}`
+        `| [[${item.name}]] | *${item.rarity}* | ${item.cost} **GP**` +
+        `| ${item.typeProperty} | ***${item.typeValue}*** |`
       );
     }
 
