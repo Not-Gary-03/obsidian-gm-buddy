@@ -17,7 +17,8 @@ export interface Ingredient extends BaseItem {
 
 export interface AlchemyCraftable extends BaseItem {
   typeProperty: string;
-  typeValue: number;
+  typeIndexMin: number;
+  typeIndexMax: number;
   recipes: string[];
 }
 

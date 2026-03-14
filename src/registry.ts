@@ -86,7 +86,8 @@ export class ItemRegistry {
           description: fm.description ?? "",
           typeItem: fm.typeItem,
           typeProperty: fm.typeProperty ?? "",
-          typeValue: fm.typeValue ?? 0,
+          typeIndexMin: fm.typeIndexMin ?? null,
+          typeIndexMax: fm.typeIndexMax ?? null,
           rarity: fm.rarity ?? "",
           cost: fm.cost ?? 0,
           recipes: fm.recipes ?? [],
@@ -162,7 +163,7 @@ export class ItemRegistry {
     typeValue: number
   ): AlchemyCraftable | undefined {
     return Array.from(this.alchemyCraftables.values()).find(
-      (c) => c.typeProperty === typeProperty && c.typeValue === typeValue
+      (c) => c.typeProperty === typeProperty && c.typeIndexMin <= typeValue && c.typeIndexMax >= typeValue
     );
   }
 

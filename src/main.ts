@@ -2,7 +2,7 @@ import {Editor, Plugin} from 'obsidian';
 import {DEFAULT_SETTINGS, GMBuddySettings, GMBuddySettingTab} from "./settings";
 import {HitPointListModal} from "./hit-point-list-modal";
 import {ItemRegistry} from "./registry";
-import {NameModal, NoteFactory} from "./noteFactory";
+import {NameModal, NumberModal, NoteFactory} from "./noteFactory";
 import {CraftingEngine} from "./crafting";
 import {NoteSync} from "./sync";
 import {ListNoteManager} from "./list-notes";
@@ -76,6 +76,39 @@ export default class GMBuddyPlugin extends Plugin {
 				}).open();
 			}
 		});
+
+		this.addCommand({
+  			id: "scale-index-alchemy",
+  			name: "Scale Indexes: All Alchemy Craftables",
+			callback: () => {
+				new NumberModal(this.app, "Scale factor", (factor) => {
+					void this.noteFactory.scaleIndexesInFolderAlchemy(ItemRegistry.FOLDERS.alchemy_craftable, factor);
+				}).open();
+			}
+		});
+
+		this.addCommand({
+  			id: "scale-index-ingredient",
+  			name: "Scale Indexes: All Ingredients",
+			callback: () => {
+				new NumberModal(this.app, "Scale factor", (factor) => {
+					void this.noteFactory.scaleIndexesInFolderIngredient(ItemRegistry.FOLDERS.ingredient, factor);
+				}).open();
+			}
+		});
+
+		this.addCommand({
+  			id: "rebuild-frontmatter-alchemy",
+  			name: "Rebuild Frontmatter: All Alchemy Craftables",
+  			callback: () => this.noteFactory.rebuildFrontmatterInFolder(ItemRegistry.FOLDERS.alchemy_craftable),
+		});
+		
+		this.addCommand({
+  			id: "rebuild-frontmatter-equipment",
+  			name: "Rebuild Frontmatter: All Equipment Craftables",
+  			callback: () => this.noteFactory.rebuildFrontmatterInFolder(ItemRegistry.FOLDERS.equipment_craftable),
+		});
+
 	}
 
 	private async promptAndCreate(type: string) {

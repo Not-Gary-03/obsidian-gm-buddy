@@ -39,7 +39,7 @@ export class CraftingEngine {
     const recipeKey = buildRecipeKey(ingredients.map((i) => i.nameNormalized));
     const recipeMatch = this.registry.findAlchemyByRecipe(recipeKey);
     if (recipeMatch) {
-      await this.finalizeCraft(recipeMatch.typeProperty, recipeMatch.typeValue, ingredients);
+      await this.finalizeCraft(recipeMatch.typeProperty, recipeMatch.typeIndexMax, ingredients);
       return;
     }
 

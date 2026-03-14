@@ -11,8 +11,17 @@ export class ListNoteManager {
   ) {}
 
   async rebuildIngredientList(): Promise<void> {
+    const rarityOrder: Record<string, number> = { common: 0, uncommon: 1, rare: 2 };
     const ingredients = this.registry.getIngredients()
-      .sort((a, b) => a.name.localeCompare(b.name));
+      .sort((a, b) => {
+        const rarityDiff = (rarityOrder[a.rarity] ?? 99) - (rarityOrder[b.rarity] ?? 99);
+        if (rarityDiff !== 0) return rarityDiff;
+        const aMax = Math.max(a.alchemical, a.mystical, a.divine);
+        const bMax = Math.max(b.alchemical, b.mystical, b.divine);
+        if (aMax !== bMax) return aMax - bMax;
+        if (a.cost !== b.cost) return a.cost - b.cost;
+        return a.name.localeCompare(b.name);
+      });
 
     const lines = [
       `*${ingredients.length} ingredient${ingredients.length !== 1 ? "s" : ""}*`,
@@ -24,7 +33,7 @@ export class ListNoteManager {
     for (const ing of ingredients) {
       lines.push(
         `| [[${ing.name}]] | *${ing.rarity}* | ${ing.cost} **GP**` +
-        `| **${ing.alchemical}** A | **${ing.mystical}** M | **${ing.divine}** D |`
+        `| **${ing.alchemical}** | **${ing.mystical}** | **${ing.divine}** |`
       );
     }
 
@@ -37,7 +46,7 @@ export class ListNoteManager {
       .sort((a, b) => {
         const propDiff = (propertyOrder[a.typeProperty] ?? 99) - (propertyOrder[b.typeProperty] ?? 99);
         if (propDiff !== 0) return propDiff;
-        return a.typeValue - b.typeValue;
+        return a.typeIndexMax - b.typeIndexMax;
       });
 
     const lines = [
@@ -50,7 +59,8 @@ export class ListNoteManager {
     for (const item of craftables) {
       lines.push(
         `| [[${item.name}]] | *${item.rarity}* | ${item.cost} **GP**` +
-        `| ${item.typeProperty} | ${item.typeValue > 0 ? "***" + item.typeValue + "***" : "*n/a*"} |`
+        `| ${item.typeProperty} | ${item.typeIndexMin > 0 && item.typeIndexMin < item.typeIndexMax ? "***" + item.typeIndexMin + "*** - " : ""}` +
+                                 `${item.typeIndexMax > 0 ? "***" + item.typeIndexMax + "***" : ""} |`
       );
     }
 
