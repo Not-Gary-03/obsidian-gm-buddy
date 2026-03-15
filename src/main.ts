@@ -2,7 +2,7 @@ import {Editor, Plugin} from 'obsidian';
 import {DEFAULT_SETTINGS, GMBuddySettings, GMBuddySettingTab} from "./settings";
 import {HitPointListModal} from "./hit-point-list-modal";
 import {ItemRegistry} from "./registry";
-import {NameModal, NumberModal, NoteFactory} from "./noteFactory";
+import {NameModal, NumberModal, NoteFactory, ShiftIndexModal} from "./noteFactory";
 import {CraftingEngine} from "./crafting";
 import {NoteSync} from "./sync";
 import {ListNoteManager} from "./list-notes";
@@ -93,6 +93,16 @@ export default class GMBuddyPlugin extends Plugin {
 			callback: () => {
 				new NumberModal(this.app, "Scale factor", (factor) => {
 					void this.noteFactory.scaleIndexesInFolderIngredient(ItemRegistry.FOLDERS.ingredient, factor);
+				}).open();
+			}
+		});
+
+		this.addCommand({
+			id: "shift-index-alchemy",
+			name: "Shift Indexes: Alchemy Craftables",
+			callback: () => {
+				new ShiftIndexModal(this.app, (typeProperty, range, compareValue, shift) => {
+					void this.noteFactory.shiftIndexesAlchemyCraftable(typeProperty, range, compareValue, shift);
 				}).open();
 			}
 		});

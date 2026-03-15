@@ -3,6 +3,8 @@ import { App, Modal, Setting, TFile, normalizePath } from "obsidian";
 import { Ingredient, AlchemyCraftable, EquipmentCraftable } from "./models";
 import { ItemRegistry, normalizeName } from "./registry";
 
+// ###############################################################################################
+// MODALS
 export class NumberModal extends Modal {
   private value = "";
 
@@ -94,6 +96,102 @@ export class NameModal extends Modal {
   }
 }
 
+export class ShiftIndexModal extends Modal {
+  private typeProperty = "alchemical";
+  private range: "all" | "gt" | "lt" = "all";
+  private compareValue = 0;
+  private shift = 0;
+
+  constructor(
+    app: App,
+    private onSubmit: (typeProperty: string, range: "all" | "gt" | "lt", compareValue: number | null, shift: number) => void
+  ) {
+    super(app);
+  }
+
+  onOpen(): void {
+    this.showTypeStep();
+  }
+
+  private showTypeStep(): void {
+    const { contentEl } = this;
+    contentEl.empty();
+    contentEl.createEl("h3", { text: "Shift Indexes (1/3) — Type" });
+
+    new Setting(contentEl).setName("Type property").addDropdown(dd => {
+      dd.addOption("alchemical", "Alchemical");
+      dd.addOption("mystical", "Mystical");
+      dd.addOption("divine", "Divine");
+      dd.setValue(this.typeProperty);
+      dd.onChange(v => { this.typeProperty = v; });
+    });
+
+    new Setting(contentEl).addButton(btn => btn.setButtonText("Next").setCta().onClick(() => this.showRangeStep()));
+  }
+
+  private showRangeStep(): void {
+    const { contentEl } = this;
+    contentEl.empty();
+    contentEl.createEl("h3", { text: "Shift Indexes (2/3) — Range" });
+
+    new Setting(contentEl).setName("Target items").addDropdown(dd => {
+      dd.addOption("all", "All");
+      dd.addOption("gt", "Greater than");
+      dd.addOption("lt", "Less than");
+      dd.setValue(this.range);
+      dd.onChange(v => { this.range = v as "all" | "gt" | "lt"; });
+    });
+
+    new Setting(contentEl).addButton(btn => btn.setButtonText("Next").setCta().onClick(() => {
+      if (this.range === "all") this.showShiftStep();
+      else this.showCompareStep();
+    }));
+  }
+
+  private showCompareStep(): void {
+    const { contentEl } = this;
+    contentEl.empty();
+    contentEl.createEl("h3", { text: "Shift Indexes (2.5/3) — Compare value" });
+
+    new Setting(contentEl).setName("typeIndexMax compare value").addText(text => {
+      text.inputEl.type = "number";
+      text.setValue(String(this.compareValue));
+      text.onChange(v => { this.compareValue = parseInt(v) || 0; });
+      text.inputEl.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); this.showShiftStep(); } });
+    });
+
+    new Setting(contentEl).addButton(btn => btn.setButtonText("Next").setCta().onClick(() => this.showShiftStep()));
+  }
+
+  private showShiftStep(): void {
+    const { contentEl } = this;
+    contentEl.empty();
+    contentEl.createEl("h3", { text: "Shift Indexes (3/3) — Shift amount" });
+
+    const submit = () => {
+      this.close();
+      this.onSubmit(this.typeProperty, this.range, this.range === "all" ? null : this.compareValue, this.shift);
+    };
+
+    new Setting(contentEl).setName("Shift amount (positive or negative integer)").addText(text => {
+      text.inputEl.type = "number";
+      text.setValue(String(this.shift));
+      text.onChange(v => { this.shift = parseInt(v) || 0; });
+      text.inputEl.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); submit(); } });
+    });
+
+    new Setting(contentEl).addButton(btn => btn.setButtonText("Apply").setCta().onClick(submit));
+  }
+
+  onClose(): void {
+    this.contentEl.empty();
+  }
+}
+// END MODALS
+// ###############################################################################################
+
+// ###############################################################################################
+// NOTE FACTORY
 export class NoteFactory {
   constructor(private app: App) {}
 
@@ -258,6 +356,41 @@ export class NoteFactory {
   // ###############################################################################################
 
   // ###############################################################################################
+  // SHIFT INDEXES ALCHEMY
+  async shiftIndexesAlchemyCraftable(typeProperty: string, range: "all" | "gt" | "lt", compareValue: number | null, shift: number): Promise<void> {
+    const files = this.app.vault.getMarkdownFiles().filter(f => f.path.startsWith(ItemRegistry.FOLDERS.alchemy_craftable));
+    for (const file of files) {
+      const cache = this.app.metadataCache.getFileCache(file);
+      const fm = cache?.frontmatter;
+      if (fm?.typeItem !== "alchemy_craftable") continue;
+      if (fm.typeProperty !== typeProperty) continue;
+      if (range === "gt" && compareValue !== null && !(fm.typeIndexMax > compareValue)) continue;
+      if (range === "lt" && compareValue !== null && !(fm.typeIndexMax < compareValue)) continue;
+
+      const raw = await this.app.vault.read(file);
+      const bodyMatch = raw.match(/^---\n[\s\S]*?\n---\n([\s\S]*)$/);
+      const body = bodyMatch ? bodyMatch[1] : raw;
+
+      const newFrontmatter = this.buildFrontmatter({
+        name: fm.name ?? "",
+        typeProperty: fm.typeProperty ?? "",
+        typeIndexMin: fm.typeIndexMin != null ? Number(fm.typeIndexMin) + shift : null,
+        typeIndexMax: fm.typeIndexMax != null ? Number(fm.typeIndexMax) + shift : null,
+        rarity: fm.rarity ?? "",
+        cost: fm.cost ?? 0,
+        description: fm.description ?? "",
+        typeItem: "alchemy_craftable",
+        nameNormalized: fm.nameNormalized ?? normalizeName(fm.name ?? ""),
+        recipes: fm.recipes ?? [],
+      });
+
+      await this.app.vault.modify(file, `${newFrontmatter}\n${body}`);
+    }
+  }
+  // END SHIFT INDEXES ALCHEMY
+  // ###############################################################################################
+
+  // ###############################################################################################
   // SCALE INDEXES INGREDIENTS
   async scaleIndexesInFolderIngredient(folder: string, factor: number): Promise<void> {
     const files = this.app.vault.getMarkdownFiles().filter(f => f.path.startsWith(folder));
@@ -291,7 +424,7 @@ export class NoteFactory {
 
     await this.app.vault.modify(file, `${newFrontmatter}\n${body}`);
   }
-  //
+  //END SCALE INDEXES INGREDIENTS
   // ###############################################################################################
 
 
@@ -362,3 +495,5 @@ export class NoteFactory {
     }
   }
 }
+// END NOTE FACTORY
+// ###############################################################################################
