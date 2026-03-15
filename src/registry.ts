@@ -77,6 +77,8 @@ export class ItemRegistry {
           alchemical: fm.alchemical ?? 0,
           mystical: fm.mystical ?? 0,
           divine: fm.divine ?? 0,
+          recipes: fm.recipes ?? [],
+          tags: fm.tags ?? [],
         });
         break;
       case "alchemy_craftable":
@@ -91,6 +93,7 @@ export class ItemRegistry {
           rarity: fm.rarity ?? "",
           cost: fm.cost ?? 0,
           recipes: fm.recipes ?? [],
+          tags: fm.tags ?? [],
         });
         break;
       case "equipment_craftable":
@@ -102,6 +105,7 @@ export class ItemRegistry {
           rarity: fm.rarity ?? "",
           cost: fm.cost ?? 0,
           recipes: fm.recipes ?? [],
+          tags: fm.tags ?? [],
         });
         break;
       default:

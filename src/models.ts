@@ -3,6 +3,7 @@ export interface GenericObject {
   name: string;
   nameNormalized: string;
   description: string;
+  tags: string[]; // Would be convenient if all objects had built-in tag potential
 }
 
 // ###############################################################################################
@@ -11,6 +12,7 @@ export interface Item extends GenericObject {
   typeItem: string;
   rarity: string;
   cost: number;
+  recipes: string[]; // Would be nice to move recipes to Item
 }
 export interface Ingredient extends Item {
   alchemical: number;
@@ -22,10 +24,9 @@ export interface AlchemyCraftable extends Item {
   typeProperty: string;
   typeIndexMin: number;
   typeIndexMax: number;
-  recipes: string[];
 }
 export interface EquipmentCraftable extends Item {
-  recipes: string[];
+  
 }
 // ###############################################################################################
 
@@ -40,7 +41,6 @@ export interface Spell extends GenericObject {
 export interface Boon extends GenericObject {
   owners: string[];
   status: string;
-  tags: string[];
 }
 // ###############################################################################################
 
@@ -49,10 +49,10 @@ export interface Boon extends GenericObject {
 export interface Monster extends GenericObject {
   level: number; // -2 = LVL 1/2, -3 = LVL 1/3, -4 = LVL 1/4
   size: string; // tiny, small, medium, large, huge, gargantuan
-  group: string; // which group this monster belongs to. none is valid
   hitPoints: number;
   armor: string; // none, medium, heavy. defaults to none.
   speed: number; // defaults to 6
-  tags: string[];
+  // tags: string[] primarily for which group(s) this monster belongs to. none is valid.
+  //                A group tag ALWAYS starts with 'group-'. Also room for other tags of course.
 }
 // ###############################################################################################
