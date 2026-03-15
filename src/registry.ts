@@ -7,6 +7,24 @@ export function normalizeName(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
+/** Converts a type name (e.g. "alchemy_craftable") to a type tag (e.g. "type-alchemy-craftable") */
+export function typeToTag(typeName: string): string {
+  return `type-${typeName.replace(/_/g, "-")}`;
+}
+
+/** Extracts the type name from a tags array (reads the first "type-" tag), or null if absent */
+export function typeFromTags(tags: string[]): string | null {
+  const typeTag = tags.find(t => t.startsWith("type-"));
+  if (!typeTag) return null;
+  return typeTag.slice(5).replace(/-/g, "_");
+}
+
+/** Returns a new tags array with the correct type tag guaranteed first, removing any stale type tags */
+export function withTypeTag(typeName: string, existingTags: string[]): string[] {
+  const otherTags = existingTags.filter(t => !t.startsWith("type-"));
+  return [typeToTag(typeName), ...otherTags];
+}
+
 export class ItemRegistry {
   private ingredients: Map<string, Ingredient> = new Map();
   private alchemyCraftables: Map<string, AlchemyCraftable> = new Map();
@@ -60,18 +78,18 @@ export class ItemRegistry {
   private indexFile(file: TFile): void {
     const cache = this.app.metadataCache.getFileCache(file);
     const fm = cache?.frontmatter;
-    if (!fm?.typeItem || !fm?.nameNormalized) return;
+    const typeItem = typeFromTags(fm?.tags ?? []);
+    if (!typeItem || !fm?.nameNormalized) return;
 
     // Always normalize the key on the way in so lookups are consistent
     const key = normalizeName(String(fm.nameNormalized));
 
-    switch (fm.typeItem) {
+    switch (typeItem) {
       case "ingredient":
         this.ingredients.set(key, {
           nameNormalized: key,
           name: fm.name ?? "",
           description: fm.description ?? "",
-          typeItem: fm.typeItem,
           rarity: fm.rarity ?? "",
           cost: fm.cost ?? 0,
           alchemical: fm.alchemical ?? 0,
@@ -86,7 +104,6 @@ export class ItemRegistry {
           nameNormalized: key,
           name: fm.name ?? "",
           description: fm.description ?? "",
-          typeItem: fm.typeItem,
           typeProperty: fm.typeProperty ?? "",
           typeIndexMin: fm.typeIndexMin ?? null,
           typeIndexMax: fm.typeIndexMax ?? null,
@@ -101,7 +118,6 @@ export class ItemRegistry {
           nameNormalized: key,
           name: fm.name ?? "",
           description: fm.description ?? "",
-          typeItem: fm.typeItem,
           rarity: fm.rarity ?? "",
           cost: fm.cost ?? 0,
           recipes: fm.recipes ?? [],

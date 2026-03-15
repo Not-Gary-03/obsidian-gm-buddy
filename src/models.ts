@@ -3,13 +3,12 @@ export interface GenericObject {
   name: string;
   nameNormalized: string;
   description: string;
-  tags: string[]; // Would be convenient if all objects had built-in tag potential
+  tags: string[];
 }
 
 // ###############################################################################################
 // ITEM INTERFACES
 export interface Item extends GenericObject {
-  typeItem: string;
   rarity: string;
   cost: number;
   recipes: string[]; // Would be nice to move recipes to Item
@@ -18,7 +17,6 @@ export interface Ingredient extends Item {
   alchemical: number;
   mystical: number;
   divine: number;
-  // extend with equipment properties as needed
 }
 export interface AlchemyCraftable extends Item {
   typeProperty: string;

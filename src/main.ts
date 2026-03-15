@@ -1,4 +1,4 @@
-import {Editor, Plugin} from 'obsidian';
+import {Editor, Notice, Plugin} from 'obsidian';
 import {DEFAULT_SETTINGS, GMBuddySettings, GMBuddySettingTab} from "./settings";
 import {HitPointListModal} from "./hit-point-list-modal";
 import {ItemRegistry} from "./registry";
@@ -117,6 +117,15 @@ export default class GMBuddyPlugin extends Plugin {
   			id: "rebuild-frontmatter-equipment",
   			name: "Rebuild Frontmatter: All Equipment Craftables",
   			callback: () => this.noteFactory.rebuildFrontmatterInFolder(ItemRegistry.FOLDERS.equipment_craftable),
+		});
+
+		this.addCommand({
+			id: "migrate-type-item-to-tags",
+			name: "Migrate: Convert typeItem field to type tag",
+			callback: async () => {
+				const count = await this.noteFactory.migrateTypeItemToTags();
+				new Notice(count > 0 ? `Migrated ${count} note(s).` : "Nothing to migrate — all notes already up to date.");
+			},
 		});
 
 	}

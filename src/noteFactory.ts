@@ -1,7 +1,7 @@
 // noteFactory.ts
 import { App, Modal, Setting, TFile, normalizePath } from "obsidian";
 import { Ingredient, AlchemyCraftable, EquipmentCraftable } from "./models";
-import { ItemRegistry, normalizeName } from "./registry";
+import { ItemRegistry, normalizeName, typeFromTags, withTypeTag } from "./registry";
 
 // ###############################################################################################
 // MODALS
@@ -252,7 +252,6 @@ export class NoteFactory {
 
     const frontmatter = this.buildFrontmatter({
       name: data.name ?? "",
-      typeItem: "ingredient",
       rarity: data.rarity ?? null,
       cost: data.cost ?? 0,
       description: data.description ?? "",
@@ -260,6 +259,7 @@ export class NoteFactory {
       mystical: data.mystical ?? 0,
       divine: data.divine ?? 0,
       nameNormalized: normalized,
+      tags: withTypeTag("ingredient", data.tags ?? []),
     });
 
     const body = this.renderIngredientBody(data);
@@ -281,9 +281,9 @@ export class NoteFactory {
       rarity: data.rarity ?? "",
       cost: data.cost ?? 0,
       description: data.description ?? "",
-      typeItem: "alchemy_craftable",
       nameNormalized: normalized,
       recipes: data.recipes ?? [],
+      tags: withTypeTag("alchemy_craftable", data.tags ?? []),
     });
 
     const body = this.renderAlchemyBody(data);
@@ -302,9 +302,9 @@ export class NoteFactory {
       rarity: data.rarity ?? "",
       cost: data.cost ?? 0,
       description: data.description ?? "",
-      typeItem: "equipment_craftable",
       nameNormalized: normalized,
       recipes: data.recipes ?? [],
+      tags: withTypeTag("equipment_craftable", data.tags ?? []),
     });
 
     const body = this.renderEquipmentBody(data);
@@ -329,7 +329,7 @@ export class NoteFactory {
   async scaleIndexAlchemyCraftable(file: TFile, factor: number): Promise<void> {
     const cache = this.app.metadataCache.getFileCache(file);
     const fm = cache?.frontmatter;
-    if (fm?.typeItem !== "alchemy_craftable") return;
+    if (!fm || typeFromTags(fm.tags ?? []) !== "alchemy_craftable") return;
 
     const raw = await this.app.vault.read(file);
     const bodyMatch = raw.match(/^---\n[\s\S]*?\n---\n([\s\S]*)$/);
@@ -345,9 +345,9 @@ export class NoteFactory {
       rarity: fm.rarity ?? "",
       cost: fm.cost ?? 0,
       description: fm.description ?? "",
-      typeItem: "alchemy_craftable",
       nameNormalized: fm.nameNormalized ?? normalizeName(fm.name ?? ""),
       recipes: fm.recipes ?? [],
+      tags: withTypeTag("alchemy_craftable", fm.tags ?? []),
     });
 
     await this.app.vault.modify(file, `${newFrontmatter}\n${body}`);
@@ -362,7 +362,7 @@ export class NoteFactory {
     for (const file of files) {
       const cache = this.app.metadataCache.getFileCache(file);
       const fm = cache?.frontmatter;
-      if (fm?.typeItem !== "alchemy_craftable") continue;
+      if (!fm || typeFromTags(fm.tags ?? []) !== "alchemy_craftable") continue;
       if (fm.typeProperty !== typeProperty) continue;
       if (range === "gt" && compareValue !== null && !(fm.typeIndexMax > compareValue)) continue;
       if (range === "lt" && compareValue !== null && !(fm.typeIndexMax < compareValue)) continue;
@@ -379,9 +379,9 @@ export class NoteFactory {
         rarity: fm.rarity ?? "",
         cost: fm.cost ?? 0,
         description: fm.description ?? "",
-        typeItem: "alchemy_craftable",
         nameNormalized: fm.nameNormalized ?? normalizeName(fm.name ?? ""),
         recipes: fm.recipes ?? [],
+        tags: withTypeTag("alchemy_craftable", fm.tags ?? []),
       });
 
       await this.app.vault.modify(file, `${newFrontmatter}\n${body}`);
@@ -401,7 +401,7 @@ export class NoteFactory {
   async scaleIndexIngredient(file: TFile, factor: number): Promise<void> {
     const cache = this.app.metadataCache.getFileCache(file);
     const fm = cache?.frontmatter;
-    if (fm?.typeItem !== "ingredient") return;
+    if (!fm || typeFromTags(fm.tags ?? []) !== "ingredient") return;
 
     const raw = await this.app.vault.read(file);
     const bodyMatch = raw.match(/^---\n[\s\S]*?\n---\n([\s\S]*)$/);
@@ -411,15 +411,14 @@ export class NoteFactory {
 
     newFrontmatter = this.buildFrontmatter({
       name: fm.name ?? "",
-      typeItem: "ingredient",
       rarity: fm.rarity ?? "",
       cost: fm.cost ?? 0,
       description: fm.description ?? "",
       alchemical: fm.alchemical != null ? Math.round(factor * fm.alchemical) : null,
       mystical: fm.mystical != null ? Math.round(factor * fm.mystical) : null,
       divine: fm.divine != null ? Math.round(factor * fm.divine) : null,
-      
       nameNormalized: fm.nameNormalized ?? normalizeName(fm.name ?? ""),
+      tags: withTypeTag("ingredient", fm.tags ?? []),
     });
 
     await this.app.vault.modify(file, `${newFrontmatter}\n${body}`);
@@ -431,7 +430,8 @@ export class NoteFactory {
   async rebuildFrontmatter(file: TFile): Promise<void> {
     const cache = this.app.metadataCache.getFileCache(file);
     const fm = cache?.frontmatter;
-    if (!fm?.typeItem) return;
+    const typeItem = typeFromTags(fm?.tags ?? []);
+    if (!fm || !typeItem) return;
 
     const raw = await this.app.vault.read(file);
     const bodyMatch = raw.match(/^---\n[\s\S]*?\n---\n([\s\S]*)$/);
@@ -439,7 +439,7 @@ export class NoteFactory {
 
     let newFrontmatter: string;
 
-    switch (fm.typeItem) {
+    switch (typeItem) {
       case "alchemy_craftable":
         newFrontmatter = this.buildFrontmatter({
           name: fm.name ?? "",
@@ -449,9 +449,9 @@ export class NoteFactory {
           rarity: fm.rarity ?? "",
           cost: fm.cost ?? 0,
           description: fm.description ?? "",
-          typeItem: "alchemy_craftable",
           nameNormalized: fm.nameNormalized ?? normalizeName(fm.name ?? ""),
           recipes: fm.recipes ?? [],
+          tags: withTypeTag("alchemy_craftable", fm.tags ?? []),
         });
         break;
       case "equipment_craftable":
@@ -460,9 +460,9 @@ export class NoteFactory {
           rarity: fm.rarity ?? "",
           cost: fm.cost ?? 0,
           description: fm.description ?? "",
-          typeItem: "equipment_craftable",
           nameNormalized: fm.nameNormalized ?? normalizeName(fm.name ?? ""),
           recipes: fm.recipes ?? [],
+          tags: withTypeTag("equipment_craftable", fm.tags ?? []),
         });
         break;
       default:
@@ -470,6 +470,77 @@ export class NoteFactory {
     }
 
     await this.app.vault.modify(file, `${newFrontmatter}\n${body}`);
+  }
+
+  /** One-time migration: rewrites notes that still use the old `typeItem` field.
+   *  Skips files that already have a "type-" tag. Returns the number of files migrated. */
+  async migrateTypeItemToTags(): Promise<number> {
+    const allFolders = Object.values(ItemRegistry.FOLDERS);
+    const files = this.app.vault.getMarkdownFiles().filter(f =>
+      allFolders.some(folder => f.path.startsWith(folder))
+    );
+
+    let count = 0;
+    for (const file of files) {
+      const cache = this.app.metadataCache.getFileCache(file);
+      const fm = cache?.frontmatter;
+      if (!fm?.typeItem) continue;
+      // Skip if already migrated
+      if ((fm.tags ?? []).some((t: string) => t.startsWith("type-"))) continue;
+
+      const raw = await this.app.vault.read(file);
+      const bodyMatch = raw.match(/^---\n[\s\S]*?\n---\n([\s\S]*)$/);
+      const body = bodyMatch ? bodyMatch[1] : raw;
+
+      let newFrontmatter: string;
+      switch (fm.typeItem) {
+        case "ingredient":
+          newFrontmatter = this.buildFrontmatter({
+            name: fm.name ?? "",
+            rarity: fm.rarity ?? "",
+            cost: fm.cost ?? 0,
+            description: fm.description ?? "",
+            alchemical: fm.alchemical ?? 0,
+            mystical: fm.mystical ?? 0,
+            divine: fm.divine ?? 0,
+            nameNormalized: fm.nameNormalized ?? normalizeName(fm.name ?? ""),
+            recipes: fm.recipes ?? [],
+            tags: withTypeTag("ingredient", fm.tags ?? []),
+          });
+          break;
+        case "alchemy_craftable":
+          newFrontmatter = this.buildFrontmatter({
+            name: fm.name ?? "",
+            typeProperty: fm.typeProperty ?? "",
+            typeIndexMin: fm.typeIndexMin ?? null,
+            typeIndexMax: fm.typeIndexMax ?? fm.typeValue ?? null,
+            rarity: fm.rarity ?? "",
+            cost: fm.cost ?? 0,
+            description: fm.description ?? "",
+            nameNormalized: fm.nameNormalized ?? normalizeName(fm.name ?? ""),
+            recipes: fm.recipes ?? [],
+            tags: withTypeTag("alchemy_craftable", fm.tags ?? []),
+          });
+          break;
+        case "equipment_craftable":
+          newFrontmatter = this.buildFrontmatter({
+            name: fm.name ?? "",
+            rarity: fm.rarity ?? "",
+            cost: fm.cost ?? 0,
+            description: fm.description ?? "",
+            nameNormalized: fm.nameNormalized ?? normalizeName(fm.name ?? ""),
+            recipes: fm.recipes ?? [],
+            tags: withTypeTag("equipment_craftable", fm.tags ?? []),
+          });
+          break;
+        default:
+          continue;
+      }
+
+      await this.app.vault.modify(file, `${newFrontmatter}\n${body}`);
+      count++;
+    }
+    return count;
   }
 
   private buildFrontmatter(data: Record<string, unknown>): string {
