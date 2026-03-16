@@ -1,6 +1,6 @@
 // registry.ts
 import { TFile, App } from "obsidian";
-import { Ingredient, AlchemyCraftable, EquipmentCraftable } from "./models";
+import { Ingredient, AlchemyCraftable, EquipmentCraftable, Monster } from "./models";
 
 /** Shared normalization: lowercase, strip all non-alphanumeric characters. */
 export function normalizeName(name: string): string {
@@ -29,6 +29,7 @@ export class ItemRegistry {
   private ingredients: Map<string, Ingredient> = new Map();
   private alchemyCraftables: Map<string, AlchemyCraftable> = new Map();
   private equipmentCraftables: Map<string, EquipmentCraftable> = new Map();
+  private monsters: Map<string, Monster> = new Map();
 
   private updateCallback: (() => void) | null = null;
   private initializing = false;
@@ -37,6 +38,7 @@ export class ItemRegistry {
     ingredient: "Crafting/Ingredients",
     alchemy_craftable: "Crafting/Alchemy",
     equipment_craftable: "Crafting/Equipment",
+    monster: "Content/Creatures/Monsters",
   };
 
   constructor(private app: App) {}
@@ -124,6 +126,19 @@ export class ItemRegistry {
           tags: fm.tags ?? [],
         });
         break;
+      case "monster":
+        this.monsters.set(key, {
+          nameNormalized: key,
+          name: fm.name ?? "",
+          level: fm.level ?? null,
+          size: fm.size ?? "medium",
+          hitPoints: fm.hitPoints ?? 0,
+          armor: fm.armor ?? "none",
+          speed: fm.speed ?? 6,
+          description: fm.description ?? "",
+          tags: fm.tags ?? []
+        });
+        break;
       default:
         return;
     }
@@ -145,6 +160,7 @@ export class ItemRegistry {
         if (typeItem === "ingredient") this.ingredients.delete(key);
         if (typeItem === "alchemy_craftable") this.alchemyCraftables.delete(key);
         if (typeItem === "equipment_craftable") this.equipmentCraftables.delete(key);
+        if (typeItem === "monster") this.monsters.delete(key);
       }
     }
     this.updateCallback?.();
@@ -192,5 +208,12 @@ export class ItemRegistry {
     return Array.from(this.alchemyCraftables.values()).find(
       (c) => c.recipes.includes(recipeKey)
     );
+  }
+
+  getMonsters(): Monster[] {
+    return Array.from(this.monsters.values());
+  }
+  getMonster(nameNormalized: string): Monster | undefined {
+    return this.monsters.get(normalizeName(nameNormalized));
   }
 }

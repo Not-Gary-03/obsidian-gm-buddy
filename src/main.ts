@@ -28,6 +28,7 @@ export default class GMBuddyPlugin extends Plugin {
 		this.registry.setUpdateCallback(() => {
 			void this.listNoteManager.rebuildIngredientList();
 			void this.listNoteManager.rebuildAlchemyList();
+			void this.listNoteManager.rebuildMonsterList();
 		});
 
 		// Wire up sync: re-render body whenever frontmatter changes
@@ -39,6 +40,8 @@ export default class GMBuddyPlugin extends Plugin {
 			await this.registry.initialize();
 		});
 
+  		// ###############################################################################################
+		// CREATE OBJECT COMMANDS
 		this.addCommand({
 			id: "create-ingredient",
 			name: "New Ingredient",
@@ -54,6 +57,16 @@ export default class GMBuddyPlugin extends Plugin {
 			name: "New Equipment Craftable",
 			callback: () => this.promptAndCreate("equipment_craftable"),
 		});
+		this.addCommand({
+			id: "create-monster",
+			name: "New Monster",
+			callback: () => this.promptAndCreate("monster"),
+		});
+		// END CREATE OBJECT COMMANDS
+        // ###############################################################################################
+
+        // ###############################################################################################
+		// FUNCTION COMMANDS
 		this.addCommand({
 			id: "perform-alchemy",
 			name: "Perform Alchemy",
@@ -106,7 +119,11 @@ export default class GMBuddyPlugin extends Plugin {
 				}).open();
 			}
 		});
+		// END FUNCTION COMMANDS
+        // ###############################################################################################
 
+        // ###############################################################################################
+		// REBUILD FRONTMATTER COMMANDS
 		this.addCommand({
   			id: "rebuild-frontmatter-alchemy",
   			name: "Rebuild Frontmatter: All Alchemy Craftables",
@@ -118,6 +135,8 @@ export default class GMBuddyPlugin extends Plugin {
   			name: "Rebuild Frontmatter: All Equipment Craftables",
   			callback: () => this.noteFactory.rebuildFrontmatterInFolder(ItemRegistry.FOLDERS.equipment_craftable),
 		});
+		// END REBUILD FRONTMATTER COMMANDS
+        // ###############################################################################################
 	}
 
 	private async promptAndCreate(type: string) {
@@ -141,6 +160,11 @@ export default class GMBuddyPlugin extends Plugin {
 					await this.app.workspace.getLeaf().openFile(file);
 				}).open();
 				break;
+			case "monster":
+				new NameModal(this.app, async (name) => {
+    			file = await this.noteFactory.createMonster({ name });
+			    await this.app.workspace.getLeaf().openFile(file);
+			  }).open();
 			default:
 				return;
 		}

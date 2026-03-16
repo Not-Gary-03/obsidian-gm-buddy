@@ -10,6 +10,8 @@ export class ListNoteManager {
     private settings: GMBuddySettings
   ) {}
 
+  // ###############################################################################################
+  // REBUILD LIST
   async rebuildIngredientList(): Promise<void> {
     const rarityOrder: Record<string, number> = { common: 0, uncommon: 1, rare: 2 };
     const ingredients = this.registry.getIngredients()
@@ -39,7 +41,6 @@ export class ListNoteManager {
 
     await this.writeNote(this.settings.ingredientListNote, lines.join("\n"));
   }
-
   async rebuildAlchemyList(): Promise<void> {
     const propertyOrder: Record<string, number> = { alchemical: 0, mystical: 1, divine: 2, unique: 3 };
     const craftables = this.registry.getAlchemyCraftables()
@@ -66,6 +67,39 @@ export class ListNoteManager {
 
     await this.writeNote(this.settings.alchemyListNote, lines.join("\n"));
   }
+  async rebuildMonsterList(): Promise<void> {
+  const items = this.registry.getMonsters()
+    .sort((a, b) => a.name.localeCompare(b.name));  // replace with your sort logic
+
+  const lines = [
+    `*${items.length} monster${items.length !== 1 ? "s" : ""}*`,
+    "",
+    `| **Name** | *Group(s)* | Level |\n` +
+    `|----------|------------|-------|`,
+  ];
+
+  let temp_string: string;
+  for (const item of items) {
+    temp_string = "";
+    temp_string += `| [[${item.name}]] | `;
+    if (item.tags) {
+      let numbergroups = 0;
+      for (const s of item.tags) {
+        if (s.startsWith("group-")) {
+          numbergroups++;
+          if (numbergroups > 1) { temp_string += ", " }
+          temp_string += s.charAt(6).toUpperCase() + s.slice(7);
+        }
+      }
+    }
+    temp_string += ` | ${item.level == -2 ? "1/2" : item.level == -3 ? "1/3" : item.level == -4 ? "1/4" : item.level > 0 ? item.level : "Minion"} |`;
+    lines.push(temp_string);
+  }
+
+  await this.writeNote(this.settings.monsterListNote, lines.join("\n"));
+}
+  // END REBUILD LIST
+  // ###############################################################################################
 
   private async writeNote(notePath: string, content: string): Promise<void> {
     const path = normalizePath(`${notePath}.md`);

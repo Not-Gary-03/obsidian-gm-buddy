@@ -1,6 +1,6 @@
 // noteFactory.ts
 import { App, Modal, Setting, TFile, normalizePath } from "obsidian";
-import { Ingredient, AlchemyCraftable, EquipmentCraftable } from "./models";
+import { Ingredient, AlchemyCraftable, EquipmentCraftable, Monster } from "./models";
 import { ItemRegistry, normalizeName, typeFromTags, withTypeTag } from "./registry";
 
 // ###############################################################################################
@@ -55,7 +55,6 @@ export class NumberModal extends Modal {
     this.contentEl.empty();
   }
 }
-
 export class NameModal extends Modal {
   private name = "";
 
@@ -95,7 +94,6 @@ export class NameModal extends Modal {
     this.contentEl.empty();
   }
 }
-
 export class ShiftIndexModal extends Modal {
   private typeProperty = "alchemical";
   private range: "all" | "gt" | "lt" = "all";
@@ -195,6 +193,8 @@ export class ShiftIndexModal extends Modal {
 export class NoteFactory {
   constructor(private app: App) {}
 
+  // ###############################################################################################
+  // RENDER BODY
   renderIngredientBody(data: Partial<Ingredient>): string {
     let returnstring: string = `# ${data.name ? data.name + "\n" : ""}`;
 
@@ -209,7 +209,6 @@ export class NoteFactory {
 
     return returnstring;
   }
-
   renderAlchemyBody(data: Partial<AlchemyCraftable>): string {
     let returnstring: string = `# ${data.name ? data.name + "\n" : ""}`;
 
@@ -227,7 +226,6 @@ export class NoteFactory {
 
     return returnstring;
   }
-
   renderEquipmentBody(data: Partial<EquipmentCraftable>): string {
     let returnstring: string = `# ${data.name ? data.name + "\n" : ""}`;
 
@@ -242,7 +240,42 @@ export class NoteFactory {
 
     return returnstring;
   }
+  renderMonsterBody(data: Partial<Monster>): string {
+    let returnstring: string = `${data.name ? "# " + data.name + "\n" : ""}**Level:** `;
 
+    if (data.level == -2) {returnstring += `1/2`}
+    else if (data.level == -3) {returnstring += `1/3`}
+    else if (data.level == -4) {returnstring += `1/4`}
+    else {returnstring += `${(data.level ?? 0) > 0 ? data.level : "Minion"}`}
+
+    returnstring += ` | **Size:** ${data.size ? data.size.charAt(0).toUpperCase() + data.size.slice(1) : "Medium"}`;
+    if (data.tags) {
+      let numbergroups = 0;
+      let tags_string = "";
+      for (const s of data.tags) {
+        if (s.startsWith("group-")) {
+          numbergroups++;
+          if (numbergroups == 1) { returnstring += ` | **Group`; }
+          if (numbergroups == 2) { returnstring += 's'; }
+          if (numbergroups > 1) { tags_string += ', '; }
+          tags_string += s.charAt(6).toUpperCase() + s.slice(7);
+        }
+      }
+      returnstring += `:** ` + tags_string + "\n";
+    }
+
+    returnstring += `**HP:** ${data.hitPoints ? data.hitPoints : "Minion"}`
+    + ` | **Armor:** ${data.armor ? data.armor.charAt(0).toUpperCase() + data.armor.slice(1) : "None"}`
+    + ` | **Speed:** ${data.speed ? data.speed : '6'}\n\n`
+    + `${data.description ?? ""}`;
+
+    return returnstring;
+  }
+  // END RENDER BODY
+  // ###############################################################################################
+
+  // ###############################################################################################
+  // CREATE OBJECT
   async createIngredient(data: Partial<Ingredient>): Promise<TFile> {
     const normalized = normalizeName(data.nameNormalized ?? data.name ?? "unnamed");
     const folder = ItemRegistry.FOLDERS.ingredient;
@@ -265,7 +298,6 @@ export class NoteFactory {
     const body = this.renderIngredientBody(data);
     return await this.app.vault.create(path, `${frontmatter}\n${body}`);
   }
-
   async createAlchemyCraftable(data: Partial<AlchemyCraftable>): Promise<TFile> {
     const normalized = normalizeName(data.nameNormalized ?? data.name ?? "unnamed");
     const folder = ItemRegistry.FOLDERS.alchemy_craftable;
@@ -289,7 +321,6 @@ export class NoteFactory {
     const body = this.renderAlchemyBody(data);
     return await this.app.vault.create(path, `${frontmatter}\n${body}`);
   }
-
   async createEquipmentCraftable(data: Partial<EquipmentCraftable>): Promise<TFile> {
     const normalized = normalizeName(data.nameNormalized ?? data.name ?? "unnamed");
     const folder = ItemRegistry.FOLDERS.equipment_craftable;
@@ -310,13 +341,31 @@ export class NoteFactory {
     const body = this.renderEquipmentBody(data);
     return await this.app.vault.create(path, `${frontmatter}\n${body}`);
   }
+  async createMonster(data: Partial<Monster>): Promise<TFile> {
+    const normalized = normalizeName(data.nameNormalized ?? data.name ?? "unnamed");
+    const folder = ItemRegistry.FOLDERS.monster;
+    const path = normalizePath(`${folder}/${data.name}.md`);
 
-  async rebuildFrontmatterInFolder(folder: string): Promise<void> {
-    const files = this.app.vault.getMarkdownFiles().filter(f => f.path.startsWith(folder));
-    for (const file of files) {
-      await this.rebuildFrontmatter(file);
-    }
+    await this.ensureFolder(folder);
+
+    const frontmatter = this.buildFrontmatter({
+      name: data.name ?? "",
+      level: data.level ?? 0,
+      size: data.size ?? "Medium",
+      hitPoints: data.hitPoints ?? 0,
+      armor: data.armor ?? "None",
+      speed: data.speed ?? 6,
+      description: data.description ?? "",
+      nameNormalized: normalized,
+      tags: withTypeTag("monster", data.tags ?? []),
+    });
+
+    const body = this.renderMonsterBody(data);
+    return await this.app.vault.create(path, `${frontmatter}\n${body}`);
   }
+  // END CREATE OBJECT
+  // ###############################################################################################
+
 
   // ###############################################################################################
   // SCALE INDEXES ALCHEMY
@@ -426,7 +475,14 @@ export class NoteFactory {
   //END SCALE INDEXES INGREDIENTS
   // ###############################################################################################
 
-
+  // ###############################################################################################
+  // FRONTMATTER MANAGEMENT
+  async rebuildFrontmatterInFolder(folder: string): Promise<void> {
+    const files = this.app.vault.getMarkdownFiles().filter(f => f.path.startsWith(folder));
+    for (const file of files) {
+      await this.rebuildFrontmatter(file);
+    }
+  }
   async rebuildFrontmatter(file: TFile): Promise<void> {
     const cache = this.app.metadataCache.getFileCache(file);
     const fm = cache?.frontmatter;
@@ -471,7 +527,6 @@ export class NoteFactory {
 
     await this.app.vault.modify(file, `${newFrontmatter}\n${body}`);
   }
-
   private buildFrontmatter(data: Record<string, unknown>): string {
     const lines = ["---"];
     for (const [key, value] of Object.entries(data)) {
@@ -488,6 +543,8 @@ export class NoteFactory {
     lines.push("---");
     return lines.join("\n");
   }
+  // END FRONTMATTER MANAGEMENT
+  // ###############################################################################################
 
   private async ensureFolder(path: string): Promise<void> {
     if (!this.app.vault.getAbstractFileByPath(path)) {

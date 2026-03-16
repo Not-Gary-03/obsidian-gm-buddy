@@ -8,6 +8,7 @@ export interface GMBuddySettings {
 	ingredientListNote: string;
 	alchemyListNote: string;
 	craftingOutputNote: string;
+	monsterListNote: string;
 }
 
 export const DEFAULT_SETTINGS: GMBuddySettings = {
@@ -17,6 +18,7 @@ export const DEFAULT_SETTINGS: GMBuddySettings = {
 	ingredientListNote: "Crafting/Ingredient List",
 	alchemyListNote: "Crafting/Alchemy List",
 	craftingOutputNote: "Crafting/Crafting Log",
+	monsterListNote: "Content/Creatures/Monster List"
 }
 
 export class GMBuddySettingTab extends PluginSettingTab {
