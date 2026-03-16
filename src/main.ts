@@ -118,16 +118,6 @@ export default class GMBuddyPlugin extends Plugin {
   			name: "Rebuild Frontmatter: All Equipment Craftables",
   			callback: () => this.noteFactory.rebuildFrontmatterInFolder(ItemRegistry.FOLDERS.equipment_craftable),
 		});
-
-		this.addCommand({
-			id: "migrate-type-item-to-tags",
-			name: "Migrate: Convert typeItem field to type tag",
-			callback: async () => {
-				const count = await this.noteFactory.migrateTypeItemToTags();
-				new Notice(count > 0 ? `Migrated ${count} note(s).` : "Nothing to migrate — all notes already up to date.");
-			},
-		});
-
 	}
 
 	private async promptAndCreate(type: string) {
