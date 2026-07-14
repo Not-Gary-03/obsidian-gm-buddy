@@ -5,7 +5,7 @@ import {ItemRegistry} from "./registry";
 import {NameModal, NumberModal, NoteFactory, ShiftIndexModal} from "./noteFactory";
 import {CraftingEngine} from "./crafting";
 import {NoteSync} from "./sync";
-import {ListNoteManager} from "./list-notes";
+import {FilteredListNoteModal, ListNoteManager} from "./list-notes";
 
 export default class GMBuddyPlugin extends Plugin {
 	settings: GMBuddySettings;
@@ -116,6 +116,20 @@ export default class GMBuddyPlugin extends Plugin {
 			callback: () => {
 				new ShiftIndexModal(this.app, (typeProperty, range, compareValue, shift) => {
 					void this.noteFactory.shiftIndexesAlchemyCraftable(typeProperty, range, compareValue, shift);
+				}).open();
+			}
+		});
+
+		this.addCommand({
+			id: "create-filtered-list-note",
+			name: "Create filtered note list",
+			callback: () => {
+				new FilteredListNoteModal(this.app, async (query) => {
+					await this.listNoteManager.createFilteredListNote(query);
+					new Notice(`Created ${query.outputNotePath}`);
+				}, {
+					folderPath: this.settings.ingredientFolder,
+					outputNotePath: "Lists/Filtered Notes",
 				}).open();
 			}
 		});

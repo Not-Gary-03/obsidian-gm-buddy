@@ -1,7 +1,111 @@
 // list-notes.ts
-import { App, TFile, normalizePath } from "obsidian";
+import { App, Modal, Setting, TFile, normalizePath } from "obsidian";
 import { ItemRegistry } from "./registry";
 import { GMBuddySettings } from "./settings";
+
+export interface FilteredListQuery {
+  folderPath: string;
+  outputNotePath: string;
+  requiredTags: string[];
+  requiredProperties: Record<string, string>;
+}
+
+export class FilteredListNoteModal extends Modal {
+  private folderPath = "";
+  private outputNotePath = "";
+  private requiredTags = "";
+  private requiredProperties = "";
+
+  constructor(
+    app: App,
+    private onSubmit: (query: FilteredListQuery) => Promise<void> | void,
+    defaults: Partial<FilteredListQuery> = {}
+  ) {
+    super(app);
+    this.folderPath = defaults.folderPath ?? "";
+    this.outputNotePath = defaults.outputNotePath ?? "";
+    this.requiredTags = (defaults.requiredTags ?? []).join(", ");
+    this.requiredProperties = Object.entries(defaults.requiredProperties ?? {})
+      .map(([key, value]) => `${key}=${value}`)
+      .join(", ");
+  }
+
+  onOpen(): void {
+    const { contentEl } = this;
+    contentEl.createEl("h2", { text: "Create Filtered List Note" });
+
+    new Setting(contentEl)
+      .setName("Folder to scan")
+      .setDesc("Vault folder to search recursively for matching notes.")
+      .addText(text => text
+        .setPlaceholder("Content/Creatures")
+        .setValue(this.folderPath)
+        .onChange(value => { this.folderPath = value; }));
+
+    new Setting(contentEl)
+      .setName("List note path")
+      .setDesc("Where the generated list will be written (omit .md).")
+      .addText(text => text
+        .setPlaceholder("Content/Creature List")
+        .setValue(this.outputNotePath)
+        .onChange(value => { this.outputNotePath = value; }));
+
+    new Setting(contentEl)
+      .setName("Required tags")
+      .setDesc("Comma-separated tags that every matching note must include.")
+      .addText(text => text
+        .setPlaceholder("tag-a, tag-b")
+        .setValue(this.requiredTags)
+        .onChange(value => { this.requiredTags = value; }));
+
+    new Setting(contentEl)
+      .setName("Required properties")
+      .setDesc("Comma-separated key=value pairs, for example type=beast, level=3.")
+      .addText(text => text
+        .setPlaceholder("type=beast, level=3")
+        .setValue(this.requiredProperties)
+        .onChange(value => { this.requiredProperties = value; }));
+
+    new Setting(contentEl)
+      .addButton(btn => btn
+        .setButtonText("Create")
+        .setCta()
+        .onClick(() => {
+          const query: FilteredListQuery = {
+            folderPath: this.folderPath.trim(),
+            outputNotePath: this.outputNotePath.trim(),
+            requiredTags: this.requiredTags
+              .split(",")
+              .map(tag => tag.trim())
+              .filter(Boolean),
+            requiredProperties: Object.fromEntries(
+              this.requiredProperties
+                .split(",")
+                .map(entry => entry.trim())
+                .filter(Boolean)
+                .map(entry => {
+                  const separatorIndex = entry.indexOf("=");
+                  if (separatorIndex === -1) {
+                    return [entry, ""] as const;
+                  }
+                  return [entry.slice(0, separatorIndex).trim(), entry.slice(separatorIndex + 1).trim()] as const;
+                })
+            ),
+          };
+
+          if (!query.folderPath || !query.outputNotePath) {
+            return;
+          }
+
+          this.close();
+          void this.onSubmit(query);
+        }));
+  }
+
+  onClose(): void {
+    this.contentEl.empty();
+  }
+}
 
 export class ListNoteManager {
   constructor(
@@ -9,6 +113,99 @@ export class ListNoteManager {
     private registry: ItemRegistry,
     private settings: GMBuddySettings
   ) {}
+
+  // ###############################################################################################
+  // FILTERED LISTS
+  async createFilteredListNote(query: FilteredListQuery): Promise<void> {
+    const folderPath = normalizePath(query.folderPath);
+    const outputPath = normalizePath(query.outputNotePath);
+    const candidateFiles = this.app.vault.getMarkdownFiles()
+      .filter(file => this.isInFolder(file.path, folderPath))
+      .filter(file => file.path !== `${outputPath}.md`);
+
+    const matchingFiles = candidateFiles
+      .filter(file => this.matchesQuery(file, query))
+      .sort((a, b) => a.path.localeCompare(b.path));
+
+    const lines = [
+      `*${matchingFiles.length} note${matchingFiles.length !== 1 ? "s" : ""}*`,
+      "",
+    ];
+
+    if (matchingFiles.length === 0) {
+      lines.push("- No matching notes found.");
+    } else {
+      for (const file of matchingFiles) {
+        lines.push(`- [[${file.path.replace(/\.md$/, "")}]]`);
+      }
+    }
+
+    await this.writeNote(outputPath, lines.join("\n"));
+  }
+
+  private isInFolder(filePath: string, folderPath: string): boolean {
+    if (!folderPath) return true;
+    return filePath === folderPath || filePath.startsWith(`${folderPath}/`);
+  }
+
+  private matchesQuery(file: TFile, query: FilteredListQuery): boolean {
+    const cache = this.app.metadataCache.getFileCache(file);
+    const frontmatter = (cache?.frontmatter ?? {}) as Record<string, unknown>;
+    const noteTags = Array.isArray(frontmatter.tags)
+      ? frontmatter.tags.map(tag => String(tag))
+      : [];
+
+    if (query.requiredTags.some(tag => !noteTags.includes(tag))) {
+      return false;
+    }
+
+    for (const [key, expectedRaw] of Object.entries(query.requiredProperties)) {
+      if (frontmatter[key] === undefined) {
+        return false;
+      }
+      if (!this.comparePropertyValue(frontmatter[key], expectedRaw)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private parsePropertyValue(rawValue: string): string | number | boolean | null {
+    const trimmed = rawValue.trim();
+    if (!trimmed) return "";
+    const lower = trimmed.toLowerCase();
+    if (lower === "true") return true;
+    if (lower === "false") return false;
+    if (lower === "null" || lower === "none") return null;
+    if (/^-?\d+$/.test(trimmed)) return parseInt(trimmed, 10);
+    if (/^-?\d+\.\d+$/.test(trimmed)) return parseFloat(trimmed);
+    return trimmed;
+  }
+
+  private normalizePropertyValue(value: unknown): string | number | boolean | null {
+    if (value == null) return null;
+    if (typeof value === "number" || typeof value === "boolean") return value;
+    if (Array.isArray(value)) return value.join(", ");
+    return String(value);
+  }
+
+  private comparePropertyValue(actual: unknown, expectedRaw: string): boolean {
+    const expected = this.parsePropertyValue(expectedRaw);
+    const normalizedActual = this.normalizePropertyValue(actual);
+    if (expected === null || normalizedActual === null) {
+      return expected === normalizedActual;
+    }
+    if (typeof expected === "boolean" && typeof normalizedActual === "boolean") {
+      return expected === normalizedActual;
+    }
+    if (typeof expected === "number" && typeof normalizedActual === "number") {
+      return expected === normalizedActual;
+    }
+    return String(normalizedActual).toLowerCase() === String(expected).toLowerCase();
+  }
+  // END FILTERED LISTS
+  // ###############################################################################################
 
   // ###############################################################################################
   // REBUILD LIST
