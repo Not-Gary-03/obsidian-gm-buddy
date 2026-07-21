@@ -302,7 +302,14 @@ export class ListNoteManager {
     const path = normalizePath(`${notePath}.md`);
     const existing = this.app.vault.getAbstractFileByPath(path);
     if (existing instanceof TFile) {
-      await this.app.vault.modify(existing, content);
+      // Preserve existing YAML frontmatter if present and ensure exactly
+      // one blank line between frontmatter and the generated content.
+      const original = await this.app.vault.read(existing);
+      const preservedFrontmatter = await this.getPreservedFrontmatter(existing, original);
+      const newText = preservedFrontmatter
+        ? `${preservedFrontmatter}\n\n${content}`
+        : content;
+      await this.app.vault.modify(existing, newText);
     } else {
       const folderPath = path.includes("/") ? path.substring(0, path.lastIndexOf("/")) : "";
       if (folderPath && !this.app.vault.getAbstractFileByPath(folderPath)) {
@@ -310,5 +317,43 @@ export class ListNoteManager {
       }
       await this.app.vault.create(path, content);
     }
+  }
+
+  private async getPreservedFrontmatter(existing: TFile, original: string): Promise<string> {
+    // Match a YAML frontmatter block at the start of the file, allowing optional
+    // BOM and leading whitespace before the opening `---`.
+    const fmMatch = original.match(/^\uFEFF?\s*---\r?\n([\s\S]*?)\r?\n---\r?\n?/);
+    if (fmMatch) {
+      let frontmatterBlock = fmMatch[0];
+      frontmatterBlock = frontmatterBlock.replace(/[ \t\r\n]+$/g, "");
+      return frontmatterBlock;
+    }
+
+    // If there is no explicit YAML block in the file text, try to preserve the
+    // frontmatter already persisted in Obsidian's metadata cache so the update
+    // can be written back without dropping those fields.
+    let parsedFrontmatter: Record<string, unknown> | undefined;
+    await this.app.fileManager.processFrontMatter(existing, (frontmatter) => {
+      parsedFrontmatter = frontmatter as Record<string, unknown>;
+    });
+
+    if (parsedFrontmatter && Object.keys(parsedFrontmatter).length > 0) {
+      const lines: string[] = ["---"];
+      for (const [key, value] of Object.entries(parsedFrontmatter)) {
+        if (value == null) {
+          lines.push(`${key}:`);
+        } else if (Array.isArray(value)) {
+          lines.push(`${key}: ${value.map(v => String(v)).join(", ")}`);
+        } else if (typeof value === "object") {
+          lines.push(`${key}: ${JSON.stringify(value)}`);
+        } else {
+          lines.push(`${key}: ${String(value)}`);
+        }
+      }
+      lines.push("---");
+      return lines.join("\n");
+    }
+
+    return "";
   }
 }
